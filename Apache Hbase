@@ -1,0 +1,131 @@
+Fase 2: Apache Hbase
+Teniendo en cuenta que la tabla de vehículos estaba en nuestra base debemos eliminarla.
+Nano delete_hbase_table.py
+#Eliminamos la tabla anterior
+import happybase
+# Conectar a HBase
+connection = happybase.Connection('localhost')
+try:
+    table_name = 'used_cars'
+    tables = connection.tables()
+    # Verificar si la tabla existe
+    if bytes(table_name, 'utf-8') in tables:
+        print(f"Eliminando la tabla: {table_name}")
+    # Deshabilitar la tabla antes de eliminarla
+        connection.disable_table(table_name)
+    # Eliminar la tabla
+        connection.delete_table(table_name)
+        print(f"Tabla {table_name} eliminada exitosamente.")
+    else:
+        print(f"La tabla {table_name} no existe.")
+except Exception as e:
+    print(f"Error al borrar la tabla: {e}")
+finally:
+    connection.close()
+python3 delete_hbase_table.py
+ 
+
+import happybase
+import pandas as pd
+
+try:
+    # 1. Conectar a HBase
+    connection = happybase.Connection('localhost')
+    print("Conexión establecida con HBase")
+
+    # 2. Crear la tabla 'pib'
+    table_name = 'pib'
+    families = {
+        'year': dict(),
+        'product': dict(),
+        'ubicacion': dict(),
+        'valor': dict()
+    }
+
+    # Eliminar la tabla si ya existe
+    if table_name.encode() in connection.tables():
+        print(f"Eliminando tabla existente - {table_name}")
+        connection.delete_table(table_name, disable=True)
+
+    # Crear nueva tabla
+    connection.create_table(table_name, families)
+    table = connection.table(table_name)
+    print("Tabla 'pib' creada exitosamente")
+
+    # 3. Cargar datos del CSV
+    pib_data = pd.read_csv('rows.csv', encoding='latin-1')
+
+    # Renombrar columnas para evitar problemas con espacios o caracteres especiales
+    pib_data.columns = [
+        'Año', 'Actividad', 'Sector', 'Tipo_de_precios',
+        'Cod_Dep', 'Departamento', 'Valor'
+    ]
+
+    # 4. Insertar datos en la tabla
+    for index, row in pib_data.iterrows():
+        row_key = f'pib_{index}'.encode()  # Generar row key único
+        data = {
+            b'year:ano': str(row['Año']).encode(),
+            b'product:actividad': str(row['Actividad']).encode(),
+            b'product:sector': str(row['Sector']).encode(),
+            b'product:tipo_precios': str(row['Tipo_de_precios']).encode(),
+            b'ubicacion:Cod_Dep': str(row['Cod_Dep']).encode(),
+            b'ubicacion:Departamento': str(row['Departamento']).encode(),
+            b'valor:valor': str(row['Valor']).encode()
+        }
+        table.put(row_key, data)
+
+    print("Datos cargados exitosamente.")
+ 
+   
+
+
+Código donde veremos los totales del PIB por año
+ total_por_año = pib_data.groupby('Año')['Valor'].sum().reset_index()
+
+    # Mostrar el resultado
+    print("Total de Valor por Año:")
+    print(total_por_año)
+ 
+Código para ver los diez datos más grandes de PIB
+    # Ordenar los datos por la columna 'Valor' en orden descendente
+    valores_mas_grandes = pib_data.sort_values(by='Valor', ascending=False).head(10)
+
+    # Mostrar los 10 valores más grandes
+    print("Los 10 valores más grandes:")
+    print(valores_mas_grandes)
+ 
+
+Agruparemos por año y departamento donde veremos los mas grandes y los menores valores del PIB
+    # Agrupar por 'Año' y 'Departamento' y calcular la suma de 'Valor'
+    agrupado = pib_data.groupby(['Año', 'Departamento'])['Valor'].sum().reset_index()
+
+    # Ordenar por 'Valor' en orden descendente
+    agrupado_ordenado = agrupado.sort_values(by='Valor', ascending=False)
+
+    # Mostrar los resultados
+    print("Datos agrupados por Año y Departamento, ordenados de mayor a menor:")
+    print(agrupado_ordenado)
+
+ 
+
+Código para ver los mayores departamento en el 2022
+    # Filtrar solo los datos del año 2022
+    pib_2022 = pib_data[pib_data['Año'] == 2022]
+
+    # Agrupar por 'Departamento' y calcular la suma de 'Valor'
+    agrupado_2022 = pib_2022.groupby('Departamento')['Valor'].sum().reset_index()
+
+    # Ordenar por 'Valor' en orden descendente
+    agrupado_2022_ordenado = agrupado_2022.sort_values(by='Valor', ascending=False).head(10)
+
+    # Mostrar los 10 departamentos con los mayores valores
+    print("Los 10 departamentos con mayores valores en 2022:")
+    print(agrupado_2022_ordenado)
+
+except Exception as e:
+    print(f"Error: {e}")
+finally:
+    connection.close()
+
+Validamos el servidor Hbase ingresando por la URL
