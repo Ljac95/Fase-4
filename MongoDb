@@ -1,0 +1,114 @@
+Fase 1 Mongo DB
+Usando la base de PIB de Hbase se usará para MongoDb
+Se ingresan los datos a través de terminal
+[
+  {
+    "Año": 2005,
+    "Actividad": "Agricultura, ganadería, caza, silvicultura y pesca",
+    "Sector": "Primario",
+    "Tipo_de_precios": "PIB a precios constantes de 2015",
+    "Código_Departamento_(DIVIPOLA)": 91,
+    "Departamento": "Amazonas",
+    "Valor_(miles_de_millones_de_pesos)": 114.17
+  },
+  {
+    "Año": 2005,
+    "Actividad": "Agricultura, ganadería, caza, silvicultura y pesca",
+    "Sector": "Primario",
+    "Tipo_de_precios": "PIB a precios constantes de 2015",
+    "Código_Departamento_(DIVIPOLA)": 5,
+    "Departamento": "Antioquia",
+    "Valor_(miles_de_millones_de_pesos)": 4856.14
+  },
+ ]
+Se ingresan 100 datos
+
+Seleccionar documentos
+db.Pib.find({
+  "Año": 2005,
+  "Sector": "Primario"
+}).limit(10);
+ 
+Contamos la cantidad de datos que pertenezcan al año 2005 del sector primario
+db.Pib.countDocuments({
+  "Año": 2005,
+  "Sector": "Primario"
+});
+ 
+
+
+
+
+
+Crear Eliminación
+Procederemos a eliminar un dato
+ 
+db.Pib.deleteOne({
+  "Año": 2005,
+  "Sector": "Primario"
+});
+ 
+
+Consulta de filtrado con operación:
+Se seleccionen los que tengan el Año de 2005 y el Sector como "Secundario", y luego deseas calcular la suma de los valores del campo Valor_(miles_de_millones_de_pesos) de esos documentos.
+db.Pib.aggregate([
+  {
+    $match: {
+      "Año": 2005,
+      "Sector": "Secundario"
+    }
+  },
+  {
+    $group: {
+      _id: null,  // No estamos agrupando por ningún campo específico, solo sumando todos los documentos que coinciden
+      totalValor: { $sum: "$Valor_(miles_de_millones_de_pesos)" }  // Suma de todos los valores en ese campo
+    }
+  }
+]);
+ 
+db.Pib.aggregate([
+  {
+    $match: {
+      "Valor_(miles_de_millones_de_pesos)": { $gt: 5000 }  // Filtra por valores mayores a 5000
+    }
+  },
+  {
+    $count: "totalDocumentos"  // Cuenta el número de documentos que coinciden con el filtro
+  }
+]);  
+
+
+Consulta de agregación y conteo:
+Queremos filtrar los documentos donde el Año sea 2005 y el Sector sea "Secundario", luego sumar los valores de Valor_(miles_de_millones_de_pesos) y contar cuántos documentos cumplen con esos criterios.
+db.Pib.aggregate([
+  {
+    $match: {
+      "Año": 2005,
+      "Sector": "Secundario"
+    }
+  },
+  {
+    $group: {
+      _id: null,  // No estamos agrupando por ningún campo específico, solo vamos a hacer la operación
+      totalValor: { $sum: "$Valor_(miles_de_millones_de_pesos)" }  // Suma los valores del campo
+    }
+  },
+  {
+    $count: "totalDocumentos"  // Cuenta cuántos documentos pasaron el filtro
+  }
+]);
+  
+Consulta de agregación y promedio
+db.Pib.aggregate([
+  {
+    $match: {
+      "Departamento": "Bogotá D.C."  // Filtra los documentos donde el Departamento es Bogotá D.C.
+    }
+  },
+  {
+    $group: {
+      _id: null,  // No estamos agrupando por ningún campo específico, solo calculamos el promedio
+      promedioValor: { $avg: "$Valor_(miles_de_millones_de_pesos)" }  // Calcula el promedio del campo Valor_(miles_de_millones_de_pesos)
+    }
+  }
+]);
